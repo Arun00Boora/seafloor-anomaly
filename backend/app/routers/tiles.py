@@ -25,8 +25,15 @@ router = APIRouter(prefix="/tiles", tags=["tiles"])
 # current working directory, so the server works regardless of which
 # folder you launch uvicorn from. ----
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent  # .../seafloor-anomaly
-RANKED_INDEX_PATH = PROJECT_ROOT / "data" / "index" / "test_ranked.json"
-TILES_ROOT = PROJECT_ROOT / "ml" / "data" / "tiles_drishti" / "test"  # scanned for normal/ and anomalous/ subfolders
+# The deployed server uses the packaged deploy_data folder; if it is missing,
+# fall back to the working data folders used during development.
+DEPLOY_DATA = PROJECT_ROOT / "deploy_data"
+if (DEPLOY_DATA / "index" / "test_ranked.json").exists():
+    RANKED_INDEX_PATH = DEPLOY_DATA / "index" / "test_ranked.json"
+    TILES_ROOT = DEPLOY_DATA / "tiles" / "test"
+else:
+    RANKED_INDEX_PATH = PROJECT_ROOT / "data" / "index" / "test_ranked.json"
+    TILES_ROOT = PROJECT_ROOT / "ml" / "data" / "tiles_drishti" / "test"
 
 _RANKED_TILES = []
 _TILE_ID_TO_RECORD = {}

@@ -7,7 +7,7 @@ FastAPI app entry point. Run with:
 (run this command from inside the `backend/` folder, so Python can find
 the `app` package)
 """
-
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,7 +20,7 @@ app = FastAPI(title="Seafloor Anomaly Review API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
