@@ -1,0 +1,8 @@
+.venv/
+.git/
+node_modules/
+frontend/
+ml/
+data/
+**/__pycache__/
+*.db
