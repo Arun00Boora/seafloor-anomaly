@@ -1,11 +1,12 @@
 // src/app/page.tsx
-"use client"; // uses state, effects and browser events, so it must be a Client Component
 
+"use client"; // uses state, effects and browser events, so it must be a Client Component
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Tile, fetchTiles } from "@/lib/api";
 import TileCard from "@/components/TileCard";
 import TileDetailModal from "@/components/TileDetailModal";
-
+import SonarMark from "@/components/SonarMark";
 // Filter options. "value" is matched against tile.flag_status.
 const FILTERS = [
   { key: "all", label: "All" },
@@ -71,11 +72,14 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-teal-300">Seafloor Anomaly Review</h1>
-          <p className="mt-1 text-sm text-ocean-300">
-            Tiles ranked most-to-least anomalous by the ensemble scoring model.
-          </p>
+               <div className="flex items-center gap-4">
+          <SonarMark size={44} />
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">Seafloor Review</h1>
+            <p className="mt-0.5 text-sm text-ocean-300">
+              Side-scan sonar tiles, ranked most to least anomalous.
+            </p>
+          </div>
         </div>
 
         {/* Reviewed counter + progress bar */}

@@ -10,17 +10,76 @@
   --color-ocean-900: #0a1420;
   --color-ocean-800: #0f1f30;
   --color-ocean-700: #16304a;
+  --color-ocean-600: #1f4a6e;
+  --color-ocean-300: #8fb4c9;
   --color-teal-400: #2dd4bf;
   --color-teal-300: #5eead4;
   --color-amber-400: #fbbf24;
   --color-red-400: #f87171;
-  --color-ocean-600: #1f4a6e;
-  --color-ocean-300: #8fb4c9;
+
+  --font-sans: var(--font-instrument), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
 body {
-  background: linear-gradient(180deg, var(--color-ocean-950) 0%, var(--color-ocean-900) 100%);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(45, 212, 191, 0.1), transparent 70%),
+    linear-gradient(180deg, var(--color-ocean-950) 0%, var(--color-ocean-900) 100%);
+  background-attachment: fixed;
   color: #e2f0f5;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   min-height: 100vh;
+}
+
+/* Faint sonar rings radiating from the top-left, fading out down the page. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-radial-gradient(
+    circle at 10% -10%,
+    transparent 0 80px,
+    rgba(45, 212, 191, 0.05) 80px 81px
+  );
+  -webkit-mask-image: linear-gradient(180deg, black, transparent 75%);
+  mask-image: linear-gradient(180deg, black, transparent 75%);
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.3);
+}
+
+/* ---- Motion ---- */
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sweep {
+  to { transform: rotate(360deg); }
+}
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.reveal {
+  animation: reveal 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.bar-grow {
+  transform-origin: left;
+  animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.sonar-sweep {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+  animation: sweep 5s linear infinite;
+}
+
+/* Respect people who turn animations off in their system settings. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .bar-grow, .sonar-sweep {
+    animation: none !important;
+  }
 }
