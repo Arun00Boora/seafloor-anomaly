@@ -71,6 +71,13 @@ body::before {
   transform-origin: left;
   animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in {
+  animation: fade-in 0.3s ease both;
+}
 .sonar-sweep {
   transform-box: view-box;
   transform-origin: 16px 16px;
@@ -79,7 +86,7 @@ body::before {
 
 /* Respect people who turn animations off in their system settings. */
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .bar-grow, .sonar-sweep {
+  .reveal, .bar-grow, .sonar-sweep, .fade-in {
     animation: none !important;
   }
 }

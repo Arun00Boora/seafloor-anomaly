@@ -93,7 +93,7 @@ export default function EvaluationPage() {
                   <div key={m.key} className="flex items-center gap-3">
                     <div className="h-3 flex-1 overflow-hidden rounded-sm bg-ocean-700">
                       <div
-                        className={`h-full ${METHOD_COLORS[m.key]}`}
+                        className={`bar-grow h-full ${METHOD_COLORS[m.key]}`}
                         style={{ width: pct(m.at_depth[i].precision, 2) }}
                       />
                     </div>
