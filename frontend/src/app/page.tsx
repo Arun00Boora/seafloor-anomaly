@@ -113,11 +113,28 @@ export default function Home() {
         ))}
       </div>
 
-      {loading && <p className="text-ocean-300">Loading ranked tiles...</p>}
+      {loading && (
+        <div>
+          <p className="mb-4 text-sm text-ocean-300">
+            Loading ranked tiles. If the server was idle, the first load can take up to a minute.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse overflow-hidden rounded-lg border border-ocean-700 bg-ocean-800"
+              >
+                <div className="aspect-square bg-ocean-700/50" />
+                <div className="h-6" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="rounded-lg border border-red-400 bg-red-400/10 p-3 text-red-400">
-          Failed to load tiles: {error}. Is the backend running at localhost:8000?
+          Could not load tiles ({error}). The server may be waking up, so wait a few seconds and refresh the page.
         </p>
       )}
 

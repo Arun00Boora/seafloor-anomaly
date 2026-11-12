@@ -26,7 +26,7 @@ export default function EvaluationPage() {
     return (
       <main className="mx-auto max-w-5xl px-6 py-8">
         <p className="rounded-lg border border-red-400 bg-red-400/10 p-3 text-red-400">
-          Failed to load evaluation: {error}. Is the backend running at localhost:8000?
+          Could not load the evaluation ({error}). The server may be waking up, so wait a few seconds and refresh the page.
         </p>
       </main>
     );
@@ -34,7 +34,7 @@ export default function EvaluationPage() {
   if (!data) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-8">
-        <p className="text-ocean-300">Loading evaluation...</p>
+        <p className="text-ocean-300">Loading evaluation. If the server was idle, this can take up to a minute.</p>
       </main>
     );
   }
