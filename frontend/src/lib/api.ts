@@ -73,4 +73,44 @@ export async function fetchEvaluation(): Promise<Evaluation> {
   const res = await fetch(`${API_BASE}/evaluation`);
   if (!res.ok) throw new Error(`Failed to fetch evaluation: ${res.status}`);
   return res.json();
+}export interface AnalyzedTile {
+  rank: number;
+  row: number;
+  col: number;
+  x: number;
+  y: number;
+  ensemble: number;
+  ae: number;
+  baseline: number;
+}
+
+export interface AnalysisResult {
+  width: number;
+  height: number;
+  tile_size: number;
+  rows: number;
+  cols: number;
+  was_resized: boolean;
+  image: string;
+  heatmap: string;
+  tiles: AnalyzedTile[];
+}
+
+export async function analyzeImage(file: File, tileSize: number): Promise<AnalysisResult> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("tile_size", String(tileSize));
+  // No Content-Type header here: the browser adds it, including the multipart boundary.
+  const res = await fetch(`${API_BASE}/analyze`, { method: "POST", body: form });
+  if (!res.ok) {
+    let detail = `Server error ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body.detail) detail = String(body.detail);
+    } catch {
+      // response had no JSON body; keep the generic message
+    }
+    throw new Error(detail);
+  }
+  return res.json();
 }

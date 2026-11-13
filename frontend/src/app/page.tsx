@@ -82,6 +82,20 @@ export default function Home() {
           </div>
         </div>
 
+                <nav className="flex flex-wrap gap-2">
+          <Link
+            href="/analyze"
+            className="rounded-full border border-teal-400 px-3 py-1 text-sm text-teal-300 hover:bg-ocean-700"
+          >
+            Analyze your own image
+          </Link>
+          <Link
+            href="/evaluation"
+            className="rounded-full border border-ocean-600 px-3 py-1 text-sm text-ocean-300 hover:border-teal-400"
+          >
+            Evaluation
+          </Link>
+        </nav>
         {/* Reviewed counter + progress bar */}
         <div className="min-w-56">
           <p className="text-sm text-ocean-300">
