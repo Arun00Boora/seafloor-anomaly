@@ -114,3 +114,36 @@ export async function analyzeImage(file: File, tileSize: number): Promise<Analys
   }
   return res.json();
 }
+export interface PrevalenceDepth {
+  fraction: number;
+  precision: number;
+  precision_low: number;
+  precision_high: number;
+  recall: number;
+}
+
+export interface PrevalenceMethod {
+  key: string;
+  label: string;
+  at_depth: PrevalenceDepth[];
+  effort: { recall_target: number; effort_saved: number }[];
+}
+
+export interface PrevalenceRate {
+  rate: number;
+  n_debris: number;
+  n_total: number;
+  methods: PrevalenceMethod[];
+}
+
+export interface Prevalence {
+  n_normal: number;
+  trials: number;
+  rates: PrevalenceRate[];
+}
+
+export async function fetchPrevalence(): Promise<Prevalence> {
+  const res = await fetch(`${API_BASE}/evaluation/prevalence`);
+  if (!res.ok) throw new Error(`Failed to fetch prevalence results: ${res.status}`);
+  return res.json();
+}

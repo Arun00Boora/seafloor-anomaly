@@ -89,6 +89,7 @@ export default function Home() {
           >
             Analyze your own image
           </Link>
+          
           <Link
             href="/evaluation"
             className="rounded-full border border-ocean-600 px-3 py-1 text-sm text-ocean-300 hover:border-teal-400"
