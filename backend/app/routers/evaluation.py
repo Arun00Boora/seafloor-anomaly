@@ -24,6 +24,7 @@ METHODS = [
     ("ensemble", "Ensemble", "ensemble_score"),
     ("ae", "Autoencoder", "ae_score"),
     ("baseline", "Brightness baseline", "baseline_score"),
+    ("pc", "PatchCore (pretrained)", "pc_score"),
 ]
 
 
@@ -32,46 +33,53 @@ def is_debris(value) -> bool:
     return str(value).strip().lower() in ("1", "1.0", "true", "anomalous")
 
 
-def evaluate_method(records: list[dict], score_field: str) -> dict:
-    # Rank tiles from highest to lowest score, exactly as an analyst would see them.
-    ranked = sorted(records, key=lambda r: r[score_field], reverse=True)
-    labels = [is_debris(r["true_label"]) for r in ranked]
-    n = len(labels)
-    total_debris = sum(labels)
+TIE_TRIALS = 200   # random orderings averaged, so tied scores get no unfair advantage
 
-    # cumulative[i] = how many debris tiles are among the top (i + 1) tiles
-    cumulative = []
-    running = 0
-    for is_d in labels:
-        running += is_d
-        cumulative.append(running)
+
+def evaluate_method(records: list[dict], score_field: str) -> dict:
+    scores = np.array([r[score_field] for r in records], dtype=float)
+    y = np.array([is_debris(r["true_label"]) for r in records])
+    n = len(y)
+    total_debris = int(y.sum())
+    rng = np.random.default_rng(0)
+
+    found_at = [[] for _ in REVIEW_FRACTIONS]    # debris found in top-k, per trial
+    needed_k = [[] for _ in RECALL_TARGETS]      # tiles needed for each recall target, per trial
+
+    for _ in range(TIE_TRIALS):
+        # Sort by score (high to low). Tiles with EXACTLY equal scores are ordered randomly.
+        # np.lexsort treats the LAST key as the primary one.
+        order = np.lexsort((rng.random(n), -scores))
+        cum = np.cumsum(y[order])
+        for j, fraction in enumerate(REVIEW_FRACTIONS):
+            k = max(1, round(n * fraction))
+            found_at[j].append(cum[k - 1])
+        for j, target in enumerate(RECALL_TARGETS):
+            needed_k[j].append(int(np.argmax(cum >= target * total_debris)) + 1)
 
     at_depth = []
-    for fraction in REVIEW_FRACTIONS:
+    for j, fraction in enumerate(REVIEW_FRACTIONS):
         k = max(1, round(n * fraction))
-        found = cumulative[k - 1]
+        found = float(np.mean(found_at[j]))
         at_depth.append({
             "fraction": fraction,
             "tiles_reviewed": k,
-            "debris_found": found,
+            "debris_found": round(found),
             "precision": found / k,
             "recall": found / total_debris if total_debris else 0.0,
         })
 
-    # Review effort saved: how few tiles must be reviewed to reach each recall target?
     effort = []
-    for target in RECALL_TARGETS:
-        needed = target * total_debris
-        k = next((i + 1 for i, c in enumerate(cumulative) if c >= needed), n)
+    for j, target in enumerate(RECALL_TARGETS):
+        k = float(np.mean(needed_k[j]))
         effort.append({
             "recall_target": target,
-            "tiles_reviewed": k,
+            "tiles_reviewed": round(k),
             "fraction_reviewed": k / n,
             "effort_saved": 1 - k / n,
         })
 
     return {"at_depth": at_depth, "effort": effort}
-
 
 @router.get("")
 def get_evaluation():

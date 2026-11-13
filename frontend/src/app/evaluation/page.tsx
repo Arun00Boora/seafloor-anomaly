@@ -11,6 +11,7 @@ const METHOD_COLORS: Record<string, string> = {
   ensemble: "bg-teal-400",
   ae: "bg-amber-400",
   baseline: "bg-ocean-300",
+  pc: "bg-rose-400",
 };
 
 const pct = (v: number, digits = 1) => `${(v * 100).toFixed(digits)}%`;
