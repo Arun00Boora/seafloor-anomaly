@@ -113,3 +113,59 @@ Dockerfile  backend image
 PyTorch, FastAPI, SQLAlchemy and SQLite, Next.js, Tailwind CSS, Docker, Render (backend) and Vercel (frontend).
 
 
+
+
+## Upload your own images
+
+The **Analyze** page accepts your own side-scan sonar images (up to 10 per run, JPG or PNG, 8 MB each). Each image is cut into square tiles, every tile is scored, and the page shows an error heatmap, boxes around the most suspicious tiles, and a ranked list. For each of the top tiles you can mark **Debris**, **False positive** or **Unsure**. Flags are kept in your browser and can be downloaded as a CSV.
+
+Uploads run on ONNX models through `onnxruntime`, so the server needs no PyTorch.
+
+## Three detectors, compared
+
+| Detector | Idea | Needs sonar training? |
+|---|---|---|
+| Brightness baseline | Score = brightest pixel in the tile | No |
+| Convolutional autoencoder | Trained on normal tiles only; score = how badly it reconstructs a tile | Yes |
+| PatchCore-style (pretrained ResNet18) | Compare each patch of a tile with a memory bank of 20,000 normal patches; score = distance of the most unusual patch | No (only a memory bank of normal tiles) |
+
+An ensemble of the autoencoder and the baseline is also shown. **Uploads are ranked by the PatchCore score**, because it performed best in the evaluation below.
+
+### Results on the 700 test tiles (65% debris)
+
+| Tiles an analyst can skip while still finding... | Ensemble | Autoencoder | Baseline | PatchCore |
+|---|---|---|---|---|
+| 50% of debris | 66.1% | 66.1% | 64.4% | 67.1% |
+| 80% of debris | 43.6% | 42.7% | 43.7% | **46.9%** |
+| 90% of debris | 34.6% | 29.6% | 35.6% | **39.3%** |
+
+At the top 30% of the ranking, precision is 95.7% for the autoencoder, 90.0% for the baseline and 99.0% for PatchCore.
+
+Ties in a score are broken randomly and averaged over 200 orderings. The 71 tiles with the maximum brightness are all debris, so the baseline's strong result at the very top is real: very bright objects are found by a simple threshold.
+
+### Results when debris is rare
+
+A real survey is mostly empty seabed, so the test set was rebuilt with all 244 normal tiles and a random subset of debris tiles, repeated 300 times. Precision in the top 5% of the ranking (random review would score the debris rate):
+
+| Debris rate | Ensemble | Autoencoder | Baseline | PatchCore |
+|---|---|---|---|---|
+| 10% | 64.4% | 67.5% | 47.4% | **88.0%** |
+| 5% | 38.2% | 39.6% | 28.2% | **71.5%** |
+
+Top 10% of the ranking: at 10% debris, PatchCore 76.9% against 62.1% for the autoencoder; at 5% debris, 45.9% against 34.2%. Deeper rows are limited by the small number of debris tiles available, so the top of the ranking is where the methods differ.
+
+### Score cutoffs on the Analyze page
+
+PatchCore scores are scaled 0 to 1 using the test set. A tile above **0.38** scores higher than 95% of normal test tiles ("worth a quick check"); above **0.50** it scores higher than 99% of normal tiles and matches the median debris tile ("worth a close look").
+
+## Limitations of the upload feature and PatchCore results
+
+- The test split is 65% debris, far more than a real survey, so compare methods to each other rather than reading raw percentages as real-world performance. The rare-debris section corrects for this.
+- With 2% or 5% debris only 5 to 13 debris tiles remain, so results swing a lot (see the ranges on the Evaluation page).
+- One dataset, with a small number of normal tiles. Other sonar types, resolutions or seabeds will behave differently, and the 64 x 64 resize loses detail.
+- Normal and debris scores overlap (roughly 0.38 to 0.45 on the PatchCore scale), so some tiles cannot be decided from the score alone. That is why the tool ranks for a human reviewer instead of deciding automatically.
+- Strong edges, such as the water-column stripe at the edge of some images, can raise the scores of normal tiles. One such background image scored 0.62 with PatchCore (autoencoder 0.41, brightness 0.99).
+- The heatmap shows autoencoder reconstruction error, scaled per image.
+- The free hosting sleeps when idle, so the first request can take up to a minute.
+
+## Reproducing the PatchCore-style results
