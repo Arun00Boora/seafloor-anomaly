@@ -8,9 +8,9 @@ import { AnalysisResult, analyzeImage } from "@/lib/api";
 
 const MAX_FILES = 10;
 const STORAGE_KEY = "seafloor-upload-flags";
-// Score cutoffs on the 0-1 PatchCore scale (provisional, tuned from test-set percentiles).
-const PC_STRONG = 0.6;
-const PC_MODERATE = 0.4;
+// Score cutoffs on the 0-1 PatchCore scale (0.38 = above 95% of normal test tiles, 0.5 = above 99% and the median debris score).
+const PC_STRONG = 0.5;
+const PC_MODERATE = 0.38;
 
 const TILE_SIZES = [
   { value: 640, label: "640 px: same scale as the training data" },
