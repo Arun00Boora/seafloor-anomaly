@@ -73,7 +73,10 @@ export async function fetchEvaluation(): Promise<Evaluation> {
   const res = await fetch(`${API_BASE}/evaluation`);
   if (!res.ok) throw new Error(`Failed to fetch evaluation: ${res.status}`);
   return res.json();
-}export interface AnalyzedTile {
+}
+
+export interface AnalyzedTile {
+  pc: number;
   rank: number;
   row: number;
   col: number;

@@ -8,6 +8,9 @@ import { AnalysisResult, analyzeImage } from "@/lib/api";
 
 const MAX_FILES = 10;
 const STORAGE_KEY = "seafloor-upload-flags";
+// Score cutoffs on the 0-1 PatchCore scale (provisional, tuned from test-set percentiles).
+const PC_STRONG = 0.6;
+const PC_MODERATE = 0.4;
 
 const TILE_SIZES = [
   { value: 640, label: "640 px: same scale as the training data" },
@@ -52,14 +55,14 @@ function flagKey(name: string, size: number, tileSize: number, row: number, col:
 }
 
 function scoreColor(score: number): string {
-  if (score > 0.7) return "bg-red-400";
-  if (score > 0.4) return "bg-amber-400";
+  if (score > PC_STRONG) return "bg-red-400";
+  if (score > PC_MODERATE) return "bg-amber-400";
   return "bg-teal-400";
 }
 
 function verdict(top: number): string {
-  if (top > 0.7) return "Strong anomaly candidate: worth a close look.";
-  if (top > 0.4) return "Moderate anomaly score: worth a quick check.";
+  if (top > PC_STRONG) return "Strong anomaly candidate: worth a close look.";
+  if (top > PC_MODERATE) return "Moderate anomaly score: worth a quick check.";
   return "Looks like ordinary seabed to the model.";
 }
 
@@ -112,7 +115,7 @@ function ResultCard({
                   <div
                     key={t.rank}
                     className={`pointer-events-none absolute border-2 border-dashed ${
-                      t.ensemble > 0.7 ? "border-red-400" : "border-amber-400"
+                      t.pc > PC_STRONG ? "border-red-400" : "border-amber-400"
                     }`}
                     style={{
                       left: `${(t.x / r.width) * 100}%`,
@@ -136,7 +139,7 @@ function ResultCard({
           </div>
 
           <div>
-            <p className="mb-1 text-sm font-medium text-white">{verdict(r.tiles[0].ensemble)}</p>
+            <p className="mb-1 text-sm font-medium text-white">{verdict(r.tiles[0].pc)}</p>
             <p className="mb-4 text-xs text-ocean-300">
               {r.width} x {r.height} px, split into {r.tiles.length} tile{r.tiles.length === 1 ? "" : "s"}
               {r.was_resized ? " (shrunk to fit the size limit)" : ""}.
@@ -152,16 +155,16 @@ function ResultCard({
                       <span className="text-ocean-300">
                         #{t.rank} · row {t.row + 1}, col {t.col + 1}
                       </span>
-                      <span className="font-mono text-teal-300">{t.ensemble.toFixed(2)}</span>
+                      <span className="font-mono text-teal-300">{t.pc.toFixed(2)}</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-ocean-700">
                       <div
-                        className={`bar-grow h-full rounded-full ${scoreColor(t.ensemble)}`}
-                        style={{ width: `${Math.round(t.ensemble * 100)}%` }}
+                        className={`bar-grow h-full rounded-full ${scoreColor(t.pc)}`}
+                        style={{ width: `${Math.round(t.pc * 100)}%` }}
                       />
                     </div>
                     <p className="mt-0.5 font-mono text-[10px] text-ocean-300">
-                      autoencoder {t.ae.toFixed(2)} · brightness {t.baseline.toFixed(2)}
+                      ranked by pretrained detector · autoencoder {t.ae.toFixed(2)} · brightness {t.baseline.toFixed(2)}
                     </p>
                     {/* Review buttons: click again to clear a choice */}
                     <div className="mt-1.5 flex gap-1.5">
@@ -179,7 +182,7 @@ function ResultCard({
                                     row: t.row,
                                     col: t.col,
                                     tileSize: r.tile_size,
-                                    score: t.ensemble,
+                                    score: t.pc,
                                   }
                             )
                           }
@@ -241,7 +244,7 @@ export default function AnalyzePage() {
   }
 
   function downloadCsv() {
-    const header = "image,tile_row,tile_col,tile_size_px,ensemble_score,status";
+    const header = "image,tile_row,tile_col,tile_size_px,pc_score,status";
     const lines = Object.values(flags).map((f) =>
       [`"${f.image.replace(/"/g, '""')}"`, f.row + 1, f.col + 1, f.tileSize, f.score.toFixed(3), f.status].join(",")
     );

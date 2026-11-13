@@ -3,10 +3,11 @@ routers/analyze.py
 
 POST /analyze  (multipart form: file, tile_size)
 
-Takes any sonar image, cuts it into square tiles, shrinks each tile to 64x64 (the
-size the autoencoder was trained on), and scores every tile the same way the main
-pipeline does. Returns the image, a full-size error heatmap, and the ranked tiles.
-Runs on ONNX, so the server does not need PyTorch.
+Takes any sonar image, cuts it into square tiles, shrinks each tile to 64x64, and scores
+every tile with three detectors: the autoencoder, the brightness baseline, and a pretrained
+PatchCore-style detector. Tiles are RANKED by the PatchCore score, the best performer in
+the rare-debris evaluation. Returns the image, a full-size autoencoder error heatmap, and
+the ranked tiles. Runs on ONNX, so the server does not need PyTorch.
 """
 
 import base64
@@ -18,6 +19,7 @@ import onnxruntime as ort
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
 
+from .. import pc_scorer
 from . import tiles as tiles_router
 
 router = APIRouter(tags=["analyze"])
@@ -25,6 +27,7 @@ router = APIRouter(tags=["analyze"])
 MODEL_DIR = tiles_router.PROJECT_ROOT / "deploy_data" / "model"
 MAX_BYTES = 8 * 1024 * 1024   # reject uploads larger than 8 MB
 MAX_SIDE = 2048               # larger images are shrunk to keep memory small
+MAX_TILES = 120               # PatchCore costs time per tile, so cap the work per upload
 TOP_FRACTION = 0.10           # AE score = mean of the worst 10% pixel errors
 
 _session = None
@@ -86,9 +89,14 @@ def analyze(file: UploadFile = File(...), tile_size: int = Form(640)):
     H, W = arr.shape
     rows = -(-H // tile_size)   # ceiling division
     cols = -(-W // tile_size)
+    if rows * cols > MAX_TILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"This would create {rows * cols} tiles (limit {MAX_TILES}). Choose a larger tile size.",
+        )
     padded = np.pad(arr, ((0, rows * tile_size - H), (0, cols * tile_size - W)), mode="edge")
 
-    # Cut into tiles and shrink each to 64x64, the scale the model was trained on.
+    # Cut into tiles and shrink each to 64x64, the scale the models were built for.
     tiles64, positions = [], []
     for r in range(rows):
         for c in range(cols):
@@ -110,6 +118,9 @@ def analyze(file: UploadFile = File(...), tile_size: int = Form(640)):
     base = normalize(base_raw, cal["baseline_min"], cal["baseline_max"])
     ensemble = (ae + base) / 2
 
+    # PatchCore-style score: the pretrained network expects 3 channels, so repeat the grey tile.
+    pc = pc_scorer.normalize(pc_scorer.score_tiles(np.repeat(x, 3, axis=1)))
+
     # Stitch the per-tile error maps into one full-size heatmap.
     grid = err.reshape(rows, cols, 64, 64).transpose(0, 2, 1, 3).reshape(rows * 64, cols * 64)
     full = Image.fromarray(grid.astype(np.float32), mode="F").resize(
@@ -117,7 +128,7 @@ def analyze(file: UploadFile = File(...), tile_size: int = Form(640)):
     )
     full_err = np.asarray(full, dtype=np.float32)[:H, :W]
 
-    ranked = sorted(range(len(positions)), key=lambda i: ensemble[i], reverse=True)
+    ranked = sorted(range(len(positions)), key=lambda i: pc[i], reverse=True)
     return {
         "width": W,
         "height": H,
@@ -125,6 +136,7 @@ def analyze(file: UploadFile = File(...), tile_size: int = Form(640)):
         "rows": rows,
         "cols": cols,
         "was_resized": resized,
+        "ranked_by": "pc",
         "image": png_base64((arr * 255).astype(np.uint8), "L"),
         "heatmap": png_base64(error_to_rgba(full_err), "RGBA"),
         "tiles": [
@@ -134,6 +146,7 @@ def analyze(file: UploadFile = File(...), tile_size: int = Form(640)):
                 "col": positions[i][1],
                 "x": positions[i][1] * tile_size,
                 "y": positions[i][0] * tile_size,
+                "pc": float(pc[i]),
                 "ensemble": float(ensemble[i]),
                 "ae": float(ae[i]),
                 "baseline": float(base[i]),
