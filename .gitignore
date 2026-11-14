@@ -9,3 +9,5 @@ ml/data/tiles_drishti/
 backend/*.db
 .env
 .vscode/
+
+ml/data/tiles_grouped/
