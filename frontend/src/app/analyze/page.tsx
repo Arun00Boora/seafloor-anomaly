@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SonarMark from "@/components/SonarMark";
+import TileThumb from "@/components/TileThumb";
 import { AnalysisResult, analyzeImage } from "@/lib/api";
 
 const MAX_FILES = 10;
@@ -58,6 +59,12 @@ function scoreColor(score: number): string {
   if (score > PC_STRONG) return "bg-red-400";
   if (score > PC_MODERATE) return "bg-amber-400";
   return "bg-teal-400";
+}
+
+function scoreBorder(score: number): string {
+  if (score > PC_STRONG) return "border-red-400";
+  if (score > PC_MODERATE) return "border-amber-400";
+  return "border-teal-400";
 }
 
 function verdict(top: number): string {
@@ -150,7 +157,18 @@ function ResultCard({
                 const key = flagKey(item.name, item.size, r.tile_size, t.row, t.col);
                 const current = flags[key]?.status;
                 return (
-                  <div key={t.rank}>
+                  <div key={t.rank} className="flex gap-3">
+                    <TileThumb
+                      src={r.image}
+                      x={t.x}
+                      y={t.y}
+                      size={r.tile_size}
+                      imgW={r.width}
+                      imgH={r.height}
+                      borderClass={scoreBorder(t.pc)}
+                      label={`Tile #${t.rank}, row ${t.row + 1}, column ${t.col + 1}`}
+                    />
+                    <div className="min-w-0 flex-1">
                     <div className="mb-1 flex justify-between text-xs">
                       <span className="text-ocean-300">
                         #{t.rank} · row {t.row + 1}, col {t.col + 1}
@@ -197,9 +215,26 @@ function ResultCard({
                         </button>
                       ))}
                     </div>
+                    </div>
                   </div>
                 );
               })}
+            </div>
+
+            <div className="mt-5 rounded-lg border border-ocean-600 bg-ocean-900 p-3 text-xs text-ocean-300">
+              <p className="mb-2 font-medium uppercase tracking-wider text-teal-300">How to read the scores</p>
+              <p className="mb-1.5 flex items-center gap-2">
+                <span className="h-3 w-3 shrink-0 rounded-sm bg-red-400" />
+                Above {PC_STRONG.toFixed(2)}: strong candidate, worth a close look
+              </p>
+              <p className="mb-1.5 flex items-center gap-2">
+                <span className="h-3 w-3 shrink-0 rounded-sm bg-amber-400" />
+                {PC_MODERATE.toFixed(2)} to {PC_STRONG.toFixed(2)}: moderate, worth a quick check
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="h-3 w-3 shrink-0 rounded-sm bg-teal-400" />
+                Below {PC_MODERATE.toFixed(2)}: looks like ordinary seabed
+              </p>
             </div>
           </div>
         </div>

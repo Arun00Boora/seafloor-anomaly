@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { Tile, tileImageUrl, tileHeatmapUrl, submitFlag, FlagPayload } from "@/lib/api";
+import { DEFINITIONS, Term, Tip } from "@/components/Tip";
 
 interface TileDetailModalProps {
   tile: Tile;
@@ -18,10 +19,11 @@ const FLAG_OPTIONS: {
   label: string;
   key: string;
   color: string;
+  hint: string;
 }[] = [
-  { value: "confirmed_debris", label: "Confirm Debris", key: "1", color: "bg-red-400 hover:bg-red-300" },
-  { value: "false_positive", label: "False Positive", key: "2", color: "bg-ocean-600 text-white hover:bg-ocean-700" },
-  { value: "unsure", label: "Unsure", key: "3", color: "bg-amber-400 hover:bg-amber-300" },
+  { value: "confirmed_debris", label: "Confirm Debris", key: "1", color: "bg-red-400 hover:bg-red-300", hint: DEFINITIONS.debris },
+  { value: "false_positive", label: "False Positive", key: "2", color: "bg-ocean-600 text-white hover:bg-ocean-700", hint: DEFINITIONS.falsePositive },
+  { value: "unsure", label: "Unsure", key: "3", color: "bg-amber-400 hover:bg-amber-300", hint: DEFINITIONS.unsure },
 ];
 
 function scoreColor(score: number): string {
@@ -59,9 +61,9 @@ export default function TileDetailModal({ tile, onClose, onFlagged }: TileDetail
   });
 
   const scores = [
-    { label: "Ensemble", value: tile.ensemble_score },
-    { label: "Autoencoder", value: tile.ae_score },
-    { label: "Brightness", value: tile.baseline_score },
+    { label: "Ensemble", term: "ensemble" as const, value: tile.ensemble_score },
+    { label: "Autoencoder", term: "autoencoder" as const, value: tile.ae_score },
+    { label: "Brightness", term: "brightness" as const, value: tile.baseline_score },
   ];
 
   return (
@@ -74,7 +76,9 @@ export default function TileDetailModal({ tile, onClose, onFlagged }: TileDetail
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-mono text-sm text-teal-300">Tile #{tile.rank}</h2>
+          <h2 className="font-mono text-sm text-teal-300">
+            <Term term="tile">Tile</Term> #{tile.rank}
+          </h2>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -105,16 +109,18 @@ export default function TileDetailModal({ tile, onClose, onFlagged }: TileDetail
         </div>
 
         <div className="mb-5 flex items-center justify-between gap-3 text-xs text-ocean-300">
-          <button
-            onClick={() => setShowHeatmap((v) => !v)}
-            className="rounded-full border border-ocean-600 px-3 py-1 hover:border-teal-400"
-          >
-            {showHeatmap ? "Hide heatmap" : "Show heatmap"}
-          </button>
+          <Tip text={DEFINITIONS.heatmap} hint={false}>
+            <button
+              onClick={() => setShowHeatmap((v) => !v)}
+              className="rounded-full border border-ocean-600 px-3 py-1 hover:border-teal-400"
+            >
+              {showHeatmap ? "Hide heatmap" : "Show heatmap"}
+            </button>
+          </Tip>
           <span className="flex items-center gap-2">
             low
             <span className="h-1.5 w-16 rounded-full bg-gradient-to-r from-teal-400 via-amber-400 to-red-400" />
-            high error
+            high <Term term="error" align="right">error</Term>
           </span>
         </div>
 
@@ -123,7 +129,9 @@ export default function TileDetailModal({ tile, onClose, onFlagged }: TileDetail
           {scores.map((s) => (
             <div key={s.label}>
               <div className="mb-1 flex justify-between text-xs">
-                <span className="text-ocean-300">{s.label}</span>
+                <span className="text-ocean-300">
+                  <Term term={s.term}>{s.label}</Term>
+                </span>
                 <span className="font-mono text-teal-300">{s.value.toFixed(3)}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-ocean-700">
@@ -138,17 +146,18 @@ export default function TileDetailModal({ tile, onClose, onFlagged }: TileDetail
 
         <div className="flex gap-2">
           {FLAG_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              disabled={submitting}
-              onClick={() => handleFlag(opt.value)}
-              className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs font-medium text-black transition disabled:opacity-50 ${opt.color} ${
-                tile.flag_status === opt.value ? "ring-2 ring-white" : ""
-              }`}
-            >
-              {opt.label}
-              <span className="font-mono text-[10px] opacity-70">key {opt.key}</span>
-            </button>
+            <Tip key={opt.value} text={opt.hint} hint={false} up className="flex flex-1">
+              <button
+                disabled={submitting}
+                onClick={() => handleFlag(opt.value)}
+                className={`flex w-full flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs font-medium text-black transition disabled:opacity-50 ${opt.color} ${
+                  tile.flag_status === opt.value ? "ring-2 ring-white" : ""
+                }`}
+              >
+                {opt.label}
+                <span className="font-mono text-[10px] opacity-70">key {opt.key}</span>
+              </button>
+            </Tip>
           ))}
         </div>
 
